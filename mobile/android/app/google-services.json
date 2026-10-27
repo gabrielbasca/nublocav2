@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "350788184100",
+    "project_id": "nubloca-app",
+    "storage_bucket": "nubloca-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:350788184100:android:a5ff5ce26b7b1473d950b1",
+        "android_client_info": {
+          "package_name": "ro.nubloca.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhcUW5vNGV6CUwxyRxo5Xrcx-kNjTniyI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,16 @@
+
+# NuBloca secrets
+/backend/.env
+/backend/.env.*
+!/backend/.env.example
+/backend/storage/app/private/firebase/
+
+# Dependencies
+/backend/vendor/
+/backend/node_modules/
+/mobile/.dart_tool/
+/mobile/build/
+
+# Local environment
+.idea/
+.vscode/
