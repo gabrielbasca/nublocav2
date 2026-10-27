@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Conversation;
 use App\Models\MessageTemplate;
 use App\Models\Vehicle;
+use App\Services\FirebaseNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,7 +37,7 @@ class ConversationController extends Controller
         ]));
     }
 
-    public function contact(Request $request): JsonResponse
+    public function contact(Request $request, FirebaseNotificationService $notifications): JsonResponse
     {
         $request->merge([
             'license_plate' => Vehicle::normalizeLicensePlate((string) $request->input('license_plate', '')),
@@ -54,7 +55,7 @@ class ConversationController extends Controller
         $vehicle = Vehicle::where('license_plate', $data['license_plate'])->firstOrFail();
         abort_if($vehicle->user_id === $request->user()->id, 422, 'You cannot contact your own vehicle.');
 
-        $conversation = DB::transaction(function () use ($request, $vehicle, $data): Conversation {
+        $conversation = DB::transaction(function () use ($request, $vehicle, $data, $notifications): Conversation {
             $conversation = Conversation::firstOrCreate(
                 [
                     'vehicle_id' => $vehicle->id,
@@ -64,11 +65,17 @@ class ConversationController extends Controller
             );
 
             $template = MessageTemplate::findOrFail($data['message_template_id']);
-            $conversation->messages()->create([
+            $message = $conversation->messages()->create([
                 'sender_user_id' => $request->user()->id,
                 'message_template_id' => $template->id,
                 'body_snapshot' => $template->body,
             ]);
+
+            $notifications->queueConversationMessage(
+                message: $message,
+                recipient: $vehicle->user,
+                isContactRequest: $conversation->wasRecentlyCreated,
+            );
 
             return $conversation;
         });

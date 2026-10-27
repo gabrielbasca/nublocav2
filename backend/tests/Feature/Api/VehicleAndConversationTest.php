@@ -6,11 +6,20 @@ use App\Models\MessageTemplate;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Kreait\Firebase\Contract\Messaging;
+use Mockery;
 use Tests\TestCase;
 
 class VehicleAndConversationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->app->instance(Messaging::class, Mockery::mock(Messaging::class));
+    }
 
     public function test_starter_templates_can_be_seeded_repeatedly(): void
     {
