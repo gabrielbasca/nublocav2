@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nubloca/core/network/api_client.dart';
+import 'package:nubloca/core/notifications/push_notification_service.dart';
 import 'package:nubloca/core/storage/token_storage.dart';
 
 final tokenStorageProvider = Provider<TokenStorage>(
@@ -12,3 +13,7 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   ref.onDispose(() => client.dio.close(force: true));
   return client;
 });
+
+final pushNotificationServiceProvider = Provider<PushNotificationService>(
+  (ref) => PushNotificationService(apiClient: ref.watch(apiClientProvider)),
+);

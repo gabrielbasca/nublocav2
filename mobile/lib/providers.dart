@@ -19,9 +19,13 @@ final authProvider = AsyncNotifierProvider<AuthController, User?>(
 
 class AuthController extends AsyncNotifier<User?> {
   @override
-  Future<User?> build() {
+  Future<User?> build() async {
     ref.read(apiClientProvider).onUnauthorized = _handleUnauthorized;
-    return ref.read(authRepositoryProvider).restoreSession();
+    final user = await ref.read(authRepositoryProvider).restoreSession();
+    if (user != null) {
+      await _registerDeviceForPush();
+    }
+    return user;
   }
 
   Future<void> login({required String email, required String password}) async {
@@ -29,6 +33,7 @@ class AuthController extends AsyncNotifier<User?> {
         .read(authRepositoryProvider)
         .login(email: email, password: password);
     state = AsyncData(session.user);
+    await _registerDeviceForPush();
   }
 
   Future<void> register({
@@ -46,13 +51,27 @@ class AuthController extends AsyncNotifier<User?> {
           passwordConfirmation: passwordConfirmation,
         );
     state = AsyncData(session.user);
+    await _registerDeviceForPush();
   }
 
   Future<void> logout() async {
     try {
+      await ref.read(pushNotificationServiceProvider).unregisterCurrentDevice();
       await ref.read(authRepositoryProvider).logout();
     } finally {
       state = const AsyncData(null);
+    }
+  }
+
+  /// Registers this device's FCM token with the backend so the user can
+  /// receive push notifications. Best-effort: failures never block auth.
+  Future<void> _registerDeviceForPush() async {
+    try {
+      final service = ref.read(pushNotificationServiceProvider);
+      await service.initialize();
+      await service.registerCurrentDevice();
+    } on Exception {
+      // Push registration must never break sign-in.
     }
   }
 
