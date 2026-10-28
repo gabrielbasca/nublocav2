@@ -14,3 +14,8 @@
 # Local environment
 .idea/
 .vscode/
+
+# Local AI tooling (developer-machine specific, not part of the app)
+.claude/
+.cursor/
+.trail/

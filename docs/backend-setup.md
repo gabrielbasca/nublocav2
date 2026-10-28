@@ -37,7 +37,9 @@ All API routes are under `/api` and return JSON.
 | `POST` | `/api/logout` | Revoke the current bearer token |
 | `GET` | `/api/user` | Return the authenticated user |
 | `GET`, `POST` | `/api/vehicles` | List or add the current user's vehicles |
+| `PUT`, `PATCH` | `/api/vehicles/{vehicle}` | Update an owned vehicle's license plate |
 | `DELETE` | `/api/vehicles/{vehicle}` | Delete a vehicle without conversation history |
+| `POST` | `/api/vehicles/{vehicle}/rotate-public-token` | Revoke and replace an owned vehicle's public QR token |
 | `GET` | `/api/message-templates` | List active predefined message templates |
 | `POST` | `/api/contact` | Start or continue a conversation using a contact template |
 | `GET` | `/api/conversations` | List conversations for either participant |
@@ -61,4 +63,10 @@ After changing queue or Firebase configuration, refresh the persistent worker (f
 
 ## Boundaries for this setup
 
-Nginx virtual hosts, TLS, and the Flutter application are not configured here.
+Production Nginx virtual hosts, TLS, and Firebase credentials are deployment-specific and are not configured here.
+
+## Public vehicle QR contact
+
+Each vehicle receives a cryptographically random 64-character hexadecimal `public_token`. The migration backfills existing vehicles before enforcing a unique, non-null token. The token remains stable during plate edits; an authenticated owner can rotate it using the API route above. Set `PUBLIC_VEHICLE_URL_PREFIX=https://nubloca.clarfiscal.ro/v` when deploying the backend. The API returns the resulting `public_url`, such as `https://nubloca.clarfiscal.ro/v/{public_token}`. Flutter renders and shares only that server-provided URL.
+
+The public page is `GET /v/{public_token}`; its CSRF-protected form posts to the same URL. It offers active predefined contact templates only and does not display the plate or owner identity/contact details. Public submissions are limited by IP, use a honeypot field, and create guest conversations/messages with null sender IDs. The nullable sender foreign keys are required for unauthenticated messages in the existing conversation schema; existing authenticated flows remain unchanged. Owners receive the existing queued contact-request notification. Guest-started conversations are currently read-only through the authenticated reply API.
