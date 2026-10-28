@@ -38,5 +38,13 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(2)->by($request->ip()),
             Limit::perDay(10)->by($request->ip()),
         ]);
+
+        // Anonymous vehicle alerts: coarse per-IP guard at the route level.
+        // Finer per-vehicle and per-scanner cooldowns are enforced in
+        // PublicVehicleAlertController so they can key on the vehicle.
+        RateLimiter::for('public-vehicle-alert', fn (Request $request) => [
+            Limit::perMinute(5)->by($request->ip()),
+            Limit::perHour(30)->by($request->ip()),
+        ]);
     }
 }

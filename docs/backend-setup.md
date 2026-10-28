@@ -46,6 +46,10 @@ All API routes are under `/api` and return JSON.
 | `GET` | `/api/conversations/{conversation}` | Read conversation history |
 | `POST` | `/api/conversations/{conversation}/messages` | Send a predefined message or reply |
 | `POST`, `DELETE` | `/api/device-tokens` | Register or remove an Android FCM device token |
+| `GET` | `/api/public/vehicles/{token}` | Anonymous: safe public vehicle info + supported alert reasons |
+| `POST` | `/api/public/vehicles/{token}/alerts` | Anonymous: send a predefined parking alert (rate limited) |
+| `GET` | `/api/vehicles/{vehicle}/alerts` | Owner: list a vehicle's alerts |
+| `POST` | `/api/vehicles/{vehicle}/alerts/{alert}/read` | Owner: mark an alert read |
 
 Authenticated routes require `Authorization: Bearer \`<token>\``. Vehicle plates are uppercased, transliterated to ASCII, and stripped of spaces and punctuation before storage and lookup. Conversation messages store the selected template ID and a text snapshot; callers cannot submit arbitrary message text. Contact, message, and authentication endpoints have rate limits.
 
@@ -70,3 +74,16 @@ Production Nginx virtual hosts, TLS, and Firebase credentials are deployment-spe
 Each vehicle receives a cryptographically random 64-character hexadecimal `public_token`. The migration backfills existing vehicles before enforcing a unique, non-null token. The token remains stable during plate edits; an authenticated owner can rotate it using the API route above. Set `PUBLIC_VEHICLE_URL_PREFIX=https://nubloca.clarfiscal.ro/v` when deploying the backend. The API returns the resulting `public_url`, such as `https://nubloca.clarfiscal.ro/v/{public_token}`. Flutter renders and shares only that server-provided URL.
 
 The public page is `GET /v/{public_token}`; its CSRF-protected form posts to the same URL. It offers active predefined contact templates only and does not display the plate or owner identity/contact details. Public submissions are limited by IP, use a honeypot field, and create guest conversations/messages with null sender IDs. The nullable sender foreign keys are required for unauthenticated messages in the existing conversation schema; existing authenticated flows remain unchanged. Owners receive the existing queued contact-request notification. Guest-started conversations are currently read-only through the authenticated reply API.
+
+## Anonymous vehicle alerts
+
+In addition to the web contact form, a privacy-safe JSON API lets an anonymous QR scanner send a predefined parking alert without an account.
+
+- `GET /api/public/vehicles/{token}` returns only the vehicle's `public_token` and the list of supported `alert_reasons`. It never exposes the plate, owner name/email/phone, user ID, or any contact detail.
+- `POST /api/public/vehicles/{token}/alerts` accepts a `reason` and an optional anonymous `scanner_token`. Supported reasons: `blocking_access`, `lights_on`, `window_open`, `accident_damage`, `other`.
+
+Alerts are persisted in `vehicle_alerts` with `vehicle_id`, `reason`, `status` (`new`/`read`), `read_at`, and timestamps. Abuse-prevention metadata is limited to salted HMAC hashes (`reporter_ip_hash`, `reporter_token_hash`); raw IPs and scanner tokens are never stored. A honeypot field (`company`) silently discards bot submissions.
+
+Abuse controls: a route-level per-IP throttle (`public-vehicle-alert`: 5/min, 30/hour) returns `429`; the controller adds a per-vehicle limit and a 5-minute per-scanner cooldown. Identical alerts within the cooldown window are idempotent — accepted with a generic `201` but not duplicated or re-notified. Every submission returns a generic success payload so a scanner cannot tell whether the owner is online or a notification was delivered.
+
+Alerts dispatch through the existing FCM pipeline via `FirebaseNotificationService::queueAccountEvent()` (type `account_event`, route `vehicle_alerts`, with `vehicle_id` and `alert_id` in `navigation_data`), queued after the database transaction commits. Owners list alerts with `GET /api/vehicles/{vehicle}/alerts` and mark them read with `POST /api/vehicles/{vehicle}/alerts/{alert}/read`; both are owner-only and never expose reporter metadata. Rotating the public token immediately invalidates the old public alert endpoint.

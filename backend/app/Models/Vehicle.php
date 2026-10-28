@@ -62,4 +62,10 @@ class Vehicle extends Model
     {
         return $this->hasMany(Conversation::class);
     }
+
+    /** @return HasMany<VehicleAlert, $this> */
+    public function alerts(): HasMany
+    {
+        return $this->hasMany(VehicleAlert::class);
+    }
 }
