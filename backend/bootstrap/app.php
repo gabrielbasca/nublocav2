@@ -13,7 +13,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // API-only backend: there is no named "login" route, so never
+        // redirect guests. Returning null makes unauthenticated API
+        // requests render a clean 401 JSON response instead of a
+        // "Route [login] not defined" 500 error.
+        $middleware->redirectGuestsTo(fn () => null);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
