@@ -29,6 +29,29 @@ class VehicleController extends Controller
         return response()->json($vehicle, 201);
     }
 
+    public function update(Request $request, Vehicle $vehicle): JsonResponse
+    {
+        abort_unless($vehicle->user_id === $request->user()->id, 404);
+
+        $request->merge([
+            'license_plate' => Vehicle::normalizeLicensePlate((string) $request->input('license_plate', '')),
+        ]);
+
+        $data = $request->validate([
+            'license_plate' => [
+                'required',
+                'string',
+                'min:2',
+                'max:16',
+                'unique:vehicles,license_plate,'.$vehicle->id,
+            ],
+        ]);
+
+        $vehicle->update($data);
+
+        return response()->json($vehicle->refresh(), 200);
+    }
+
     public function destroy(Request $request, Vehicle $vehicle): JsonResponse
     {
         abort_unless($vehicle->user_id === $request->user()->id, 404);
@@ -37,5 +60,14 @@ class VehicleController extends Controller
         $vehicle->delete();
 
         return response()->json(status: 204);
+    }
+
+    public function rotatePublicToken(Request $request, Vehicle $vehicle): JsonResponse
+    {
+        abort_unless($vehicle->user_id === $request->user()->id, 404);
+
+        $vehicle->rotatePublicToken();
+
+        return response()->json($vehicle->refresh(), 200);
     }
 }

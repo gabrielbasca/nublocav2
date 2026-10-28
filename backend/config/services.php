@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'nubloca' => [
+        'public_vehicle_url_prefix' => env(
+            'PUBLIC_VEHICLE_URL_PREFIX',
+            'https://nubloca.clarfiscal.ro/v',
+        ),
+    ],
+
 ];

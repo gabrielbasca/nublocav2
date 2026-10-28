@@ -9,6 +9,8 @@ use Illuminate\Support\Str;
 
 class Vehicle extends Model
 {
+    protected $appends = ['public_url'];
+
     protected $fillable = [
         'user_id',
         'license_plate',
@@ -22,6 +24,31 @@ class Vehicle extends Model
     public function setLicensePlateAttribute(string $licensePlate): void
     {
         $this->attributes['license_plate'] = self::normalizeLicensePlate($licensePlate);
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Vehicle $vehicle): void {
+            if (! $vehicle->public_token) {
+                $vehicle->public_token = self::generatePublicToken();
+            }
+        });
+    }
+
+    public static function generatePublicToken(): string
+    {
+        return bin2hex(random_bytes(32));
+    }
+
+    public function getPublicUrlAttribute(): string
+    {
+        return rtrim((string) config('services.nubloca.public_vehicle_url_prefix'), '/')
+            .'/'.$this->public_token;
+    }
+
+    public function rotatePublicToken(): void
+    {
+        $this->forceFill(['public_token' => self::generatePublicToken()])->save();
     }
 
     /** @return BelongsTo<User, $this> */

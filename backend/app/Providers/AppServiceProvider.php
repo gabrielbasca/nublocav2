@@ -33,5 +33,10 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(10)->by($request->user()?->id ?? $request->ip()),
             Limit::perHour(100)->by($request->user()?->id ?? $request->ip()),
         ]);
+
+        RateLimiter::for('public-vehicle-contact', fn (Request $request) => [
+            Limit::perMinute(2)->by($request->ip()),
+            Limit::perDay(10)->by($request->ip()),
+        ]);
     }
 }

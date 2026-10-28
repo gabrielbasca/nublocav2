@@ -24,6 +24,11 @@ class ConversationMessageController extends Controller
 
         abort_unless($isInitiator || $isVehicleOwner, 404);
         abort_unless($conversation->status === 'open', 409, 'This conversation is closed.');
+        abort_if(
+            $conversation->started_by_user_id === null,
+            409,
+            'Public contact requests cannot receive replies in this API.',
+        );
 
         $expectedType = $isInitiator ? 'contact' : 'reply';
         $data = $request->validate([

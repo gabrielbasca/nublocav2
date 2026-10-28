@@ -18,7 +18,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/user', [AuthController::class, 'user']);
 
     Route::get('/message-templates', [MessageTemplateController::class, 'index']);
-    Route::apiResource('vehicles', VehicleController::class)->only(['index', 'store', 'destroy']);
+    Route::post('/vehicles/{vehicle}/rotate-public-token', [VehicleController::class, 'rotatePublicToken']);
+    Route::apiResource('vehicles', VehicleController::class)->only(['index', 'store', 'update', 'destroy']);
 
     Route::post('/contact', [ConversationController::class, 'contact'])->middleware('throttle:contact');
     Route::get('/conversations', [ConversationController::class, 'index']);
